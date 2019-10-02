@@ -16,7 +16,6 @@ List<String> filterSitesByUserScript(String userScript, List<String> sites) {
     def binding = new Binding()
     def downloadX = { new URL(it).text }
     def siteTalksAboutGroovyX = {it.contains("groovy")}
-    def rememberedSitesX = []
     def rememberX = { rememberedSites += it }
     rememberX.resolveStrategy = Closure.DELEGATE_ONLY
     rememberX.delegate = binding
