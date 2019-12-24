@@ -28,6 +28,8 @@ class ScorchedEarthGame(Widget):
         self.players_count = 2
 
     def game_setup(self):
+        # clear the canvas
+        self.canvas.clear()
         # terrain setup
         self.terrain = RandomTerrain()
         t = self.terrain.terrain
@@ -113,7 +115,7 @@ class Missile:
         self.active = False
         self.animation = Image(
             source='explosion.zip',
-            anim_delay=-1,# 0.08,
+            anim_delay=-1,
             anim_loop=1,
             allow_stretch=True,
             keep_ratio=False
@@ -209,6 +211,8 @@ class TankPlayer:
         super().__init__()
         self.health = 100
         self.size = (50, 30)
+        self.active = False
+
         # initialize the body
         pos = (position[0] - self.size[0]/2, position[1])
         instruction_group = InstructionGroup()
@@ -222,7 +226,7 @@ class TankPlayer:
         self.cannon_size = (7, 30)
         self.cannon_pos = (pos[0] + self.size[0]/2 - self.cannon_size[0]/2, position[1] + self.size[1])
         rotation_origin = (self.cannon_pos[0] + self.cannon_size[0]/2, self.cannon_pos[1])
-        self.cannon_rotation = Rotate(origin=rotation_origin, angle=20)
+        self.cannon_rotation = Rotate(origin=rotation_origin, angle=0)
         instruction_group.add(PushMatrix())
         instruction_group.add(Color(0.5, 0.5, 0.5))
         instruction_group.add(self.cannon_rotation)
@@ -235,7 +239,23 @@ class TankPlayer:
         instruction_group.add(self.missile.instruction)
         self.instruction = instruction_group
         game.bind(on_step=self.on_step)
-        self.active = False
+
+        # health bar
+        instruction_group.add(Color(0.8, 0.8, 0.8))
+        hb_size = (self.size[0], 12)
+        hb_pos = (pos[0], pos[1] - 20)
+        instruction_group.add(Rectangle(pos=hb_pos, size=hb_size))
+        self.hb_color = Color(0, 1, 0)
+        instruction_group.add(self.hb_color)
+        self.hb = Rectangle(pos=hb_pos, size=hb_size)
+        instruction_group.add(self.hb)
+
+        # missile power triangle
+        triangle_points = [0 + pos[0], 0 + pos[1], 50 + pos[0], 0 + pos[1], 25 + pos[0], 50 + pos[1]]
+        self.triangle = Triangle(pos=pos, points=triangle_points)
+        instruction_group.add(Color(1, 1, 0))
+        instruction_group.add(self.triangle)
+
 
     def activate(self):
         self.active = True
@@ -249,15 +269,21 @@ class TankPlayer:
 
     def missile_hit(self):
         self.health -= 20
-        self.body_color.rgb = (1, 0, 0)
-        Clock.schedule_once(self.set_color_back, 1)
         if not self.is_alive:
             game.canvas.remove(self.instruction)
 
+        if 66 > self.health > 33:
+            self.hb_color.rgb = (1, 1, 0)
+        else:
+            self.hb_color.rgb = (1, 0, 0)
+
+        self.hb.size = (self.size[0] * self.health / 100, self.hb.size[1])
+
+        self.body_color.rgb = (1, 0, 0)
+        Clock.schedule_once(self.set_color_back, 1)
+
     def set_color_back(self, _):
-        #from main import sm
         self.body_color.rgb = self.green_color
-        #sm.current = 'settings'
 
     def on_step(self, sender, diff):
         if not self.active:  # only active player can move etc
