@@ -1,7 +1,7 @@
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen
 
-from game import game
+from game import game, kc
 
 Builder.load_string("""
 <GameSettingsScreen>:
@@ -15,12 +15,12 @@ Builder.load_string("""
             halign: 'center'
             valign: 'middle'
         Spinner:
+            id: spinner
             size_hint: None, None
             pos_hint:{"center_x":0.5,"center_y":0.5}
             size: 300,100
             text: '2'
             values: '2', '3', '4', '5'
-            on_text: root.on_spinner_select(self.text)
         Button:
             size_hint: None, None
             pos_hint:{"center_x":0.5,"center_y":0.3}
@@ -34,8 +34,6 @@ Builder.load_string("""
 
 
 class GameSettingsScreen(Screen):
-    def on_spinner_select(self, text):
-        game.players_count = int(text)
-
     def start_game(self):
-        game.game_setup()
+        kc.bind_keyboard()
+        game.game_setup(int(self.ids.spinner.text))

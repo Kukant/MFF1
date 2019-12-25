@@ -25,18 +25,19 @@ class ScorchedEarthGame(Widget):
         self.terrain = None
         self.terrain_map = None
         self.players = None
-        self.players_count = 2
 
-    def game_setup(self):
+    def game_setup(self, players_count):
         # clear the canvas
         self.canvas.clear()
+        self.active_player = None
+
         # terrain setup
         self.terrain = RandomTerrain()
         t = self.terrain.terrain
         self.terrain_map = {t[x]: t[x + 1] for x in range(0, len(t), 2)}
 
         # players setup
-        player_x_positions = [int(Window.width/(self.players_count + 1) * i) for i in range(1, self.players_count + 1)]
+        player_x_positions = [int(Window.width/(players_count + 1) * i) for i in range(1, players_count + 1)]
         self.players = [TankPlayer((posx, self.terrain_map[posx])) for posx in player_x_positions]
 
         # add terrain
@@ -57,14 +58,21 @@ class ScorchedEarthGame(Widget):
             return
 
         self.players[self.active_player].deactivate()
-        for i in range(1, len(self.players)):
-            x = (i + self.active_player) % len(self.players)
-            if self.players[x].is_alive:
-                self.players[x].activate()
-                self.active_player = x
-                break
+
+        # check count of alive players, if more than one is alive, the game continues
+        if len([x for x in self.players if x.is_alive]) <= 1:
+            Clock.schedule_once(self.next_screen, 2)
         else:
-            print("Game over. Player {} won.".format(self.active_player))
+            # select next alive player
+            for i in range(1, len(self.players)):
+                x = (i + self.active_player) % len(self.players)
+                if self.players[x].is_alive:
+                    self.players[x].activate()
+                    self.active_player = x
+                    break
+
+    def next_screen(self, _):
+        self.parent.manager.current = 'winner_input'
 
     def _on_step(self, diff: float):
         self.dispatch("on_step", diff)
@@ -73,11 +81,16 @@ class ScorchedEarthGame(Widget):
 class KeyboardController(Widget):
     def __init__(self):
         super().__init__()
-        self.keyboard = Window.request_keyboard(self.on_keyboard_closed, self)
-        self.keyboard.bind(on_key_down=self.on_key_down)
-        self.keyboard.bind(on_key_up=self.on_key_up)
+        self.keyboard = None
+        self.bind_keyboard()
         self.keys_pressed = set()
         self.controls_active = False
+
+    def bind_keyboard(self):
+        if self.keyboard is None:
+            self.keyboard = Window.request_keyboard(self.on_keyboard_closed, self)
+            self.keyboard.bind(on_key_down=self.on_key_down)
+            self.keyboard.bind(on_key_up=self.on_key_up)
 
     def activate_controls(self):
         self.controls_active = True
@@ -222,14 +235,25 @@ class TankPlayer:
         self.body = Rectangle(pos=pos, size=self.size)
         instruction_group.add(self.body)
 
-        # add the cannon
+        # add the cannon and power triangle
         self.cannon_size = (7, 30)
         self.cannon_pos = (pos[0] + self.size[0]/2 - self.cannon_size[0]/2, position[1] + self.size[1])
         rotation_origin = (self.cannon_pos[0] + self.cannon_size[0]/2, self.cannon_pos[1])
         self.cannon_rotation = Rotate(origin=rotation_origin, angle=0)
         instruction_group.add(PushMatrix())
-        instruction_group.add(Color(0.5, 0.5, 0.5))
         instruction_group.add(self.cannon_rotation)
+
+        # missile power triangle
+        self.missile_power = 2.0
+        self.power_rising = True
+        lb = (self.cannon_pos[0] - 15 + self.cannon_size[0]/2, pos[1] + 80)
+        triangle_points = [lb[0], lb[1], 30 + lb[0], lb[1], 15 + lb[0], 50 + lb[1]]
+        self.triangle = Triangle(points=triangle_points)
+        self.triangle_color = Color(1, 1, 1, 0)
+        instruction_group.add(self.triangle_color)
+        instruction_group.add(self.triangle)
+        # cannon continues
+        instruction_group.add(Color(0.5, 0.5, 0.5))
         instruction_group.add(Rectangle(pos=self.cannon_pos, size=self.cannon_size))
         instruction_group.add(PopMatrix())
         self.sound = SoundLoader.load('blast.wav')
@@ -250,17 +274,12 @@ class TankPlayer:
         self.hb = Rectangle(pos=hb_pos, size=hb_size)
         instruction_group.add(self.hb)
 
-        # missile power triangle
-        triangle_points = [0 + pos[0], 0 + pos[1], 50 + pos[0], 0 + pos[1], 25 + pos[0], 50 + pos[1]]
-        self.triangle = Triangle(pos=pos, points=triangle_points)
-        instruction_group.add(Color(1, 1, 0))
-        instruction_group.add(self.triangle)
-
-
     def activate(self):
+        self.triangle_color.a = 0.22
         self.active = True
 
     def deactivate(self):
+        self.triangle_color.a = 0
         self.active = False
 
     @property
@@ -274,7 +293,7 @@ class TankPlayer:
 
         if 66 > self.health > 33:
             self.hb_color.rgb = (1, 1, 0)
-        else:
+        elif self.health <= 33:
             self.hb_color.rgb = (1, 0, 0)
 
         self.hb.size = (self.size[0] * self.health / 100, self.hb.size[1])
@@ -293,20 +312,54 @@ class TankPlayer:
             self.cannon_rotation.angle -= 0.7
         elif "a" in kc.keys_pressed and self.cannon_rotation.angle < 90:
             self.cannon_rotation.angle += 0.7
+        elif "w" in kc.keys_pressed:
+            self.change_power(add=True)
+        elif "s" in kc.keys_pressed:
+            self.change_power(add=False)  # subtract
         elif "spacebar" in kc.keys_pressed:
             kc.keys_pressed.remove("spacebar")
             self.shoot()
+            self.deactivate()
 
-    def shoot(self, power=10):
+    def change_power(self, add=True):
+        max = 20
+        min = 2
+        power_change = 0.2
+
+        if add and self.missile_power < max:
+            self.missile_power += power_change
+            self.move_triangle(1)
+        elif not add and self.missile_power > min:
+            self.missile_power -= power_change
+            self.move_triangle(-1)
+
+    def move_triangle(self, diff: float):
+        curr_points = self.triangle.points
+        for i, p in enumerate(curr_points):
+            if i % 2 != 0:
+                curr_points[i] += diff
+        self.triangle.points = curr_points
+
+    def get_cannon_unit_vector(self) -> tuple:
         # convert to radians, rotate 90 degrees
         angle = (self.cannon_rotation.angle + 90) * math.pi / 180.0
-        unit_vector = (cos(angle), sin(angle))
+        return cos(angle), sin(angle)
+
+    def shoot(self):
+        power = self.missile_power
+        unit_vector = self.get_cannon_unit_vector()
         power_vector = tuple(map(lambda x: x*power, unit_vector))
         self.missile.activate()
         self.missile.speed = power_vector
 
         # calculate missile initial position
-        initial_position = map(lambda x, y, z: x * self.cannon_size[1] + y - z, unit_vector, self.cannon_pos, (10, 0))
+        # multiply the current unit vector  with the cannon size
+        # then add the cannon position(top center)
+        # finally subtract the ball radius
+        initial_position = map(lambda x, y, z: x * self.cannon_size[1] + y - z,
+                               unit_vector,
+                               [self.cannon_pos[0] + self.cannon_size[0]/2, self.cannon_pos[1]],
+                               (10, 10))
         self.missile.body.pos = initial_position
         self.sound.play()
 
