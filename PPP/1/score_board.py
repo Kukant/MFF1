@@ -87,7 +87,7 @@ class HallOfFameScreen(Screen):
 
 
 class ScoreSaver:
-    fn = 'scores.json'
+    fn = 'assets/scores.json'
 
     @staticmethod
     def save(name):

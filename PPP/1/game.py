@@ -114,7 +114,7 @@ class KeyboardController(Widget):
 
 class Missile:
     def __init__(self):
-        self.sound = SoundLoader.load('explosion.wav')
+        self.sound = SoundLoader.load('assets/explosion.wav')
         self.gravity = (0, -0.1)
         self.drag = 0.9
         self.color = Color(0, 1, 0, 0)  # set it to be invisible for now
@@ -127,7 +127,7 @@ class Missile:
         self.instruction.add(self.body)
         self.active = False
         self.animation = Image(
-            source='explosion.zip',
+            source='assets/explosion.zip',
             anim_delay=-1,
             anim_loop=1,
             allow_stretch=True,
@@ -256,7 +256,7 @@ class TankPlayer:
         instruction_group.add(Color(0.5, 0.5, 0.5))
         instruction_group.add(Rectangle(pos=self.cannon_pos, size=self.cannon_size))
         instruction_group.add(PopMatrix())
-        self.sound = SoundLoader.load('blast.wav')
+        self.sound = SoundLoader.load('assets/blast.wav')
 
         # add missile for this player
         self.missile = Missile()
