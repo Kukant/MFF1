@@ -12,10 +12,17 @@ from kivy.uix.image import Image
 from kivy.uix.screenmanager import Screen
 from kivy.core.audio import SoundLoader
 
+from keyboard_controller import KeyboardController
+
+# seed the random numbers
 seed()
 
 
 class ScorchedEarthGame(Widget):
+    """
+    This is the root of the game. It has references to the players, terrain etc.
+    It handles re-generating the whole game scene. Also, it resends the step event.
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.register_event_type("on_step")
@@ -78,41 +85,10 @@ class ScorchedEarthGame(Widget):
         self.dispatch("on_step", diff)
 
 
-class KeyboardController(Widget):
-    def __init__(self):
-        super().__init__()
-        self.keyboard = None
-        self.bind_keyboard()
-        self.keys_pressed = set()
-        self.controls_active = False
-
-    def bind_keyboard(self):
-        if self.keyboard is None:
-            self.keyboard = Window.request_keyboard(self.on_keyboard_closed, self)
-            self.keyboard.bind(on_key_down=self.on_key_down)
-            self.keyboard.bind(on_key_up=self.on_key_up)
-
-    def activate_controls(self):
-        self.controls_active = True
-
-    def deactivate_controls(self):
-        self.controls_active = False
-
-    def on_keyboard_closed(self):
-        self.keyboard.unbind(on_key_down=self.on_key_down)
-        self.keyboard.unbind(on_key_up=self.on_key_up)
-        self.keyboard = None
-
-    def on_key_down(self, keyboard, keycode, text, modifiers):
-        self.keys_pressed.add(keycode[1])
-
-    def on_key_up(self, keyboard, keycode):
-        text = keycode[1]
-        if text in self.keys_pressed:
-            self.keys_pressed.remove(text)
-
-
 class Missile:
+    """
+    Class for the missile game object. It handles its movement, collisions and effects.
+    """
     def __init__(self):
         self.sound = SoundLoader.load('assets/explosion.wav')
         self.gravity = (0, -0.1)
@@ -220,6 +196,9 @@ class Missile:
 
 
 class TankPlayer:
+    """
+    Class representing the player. It encapsulates the body of the tank, health, movement of the cannon and shooting.
+    """
     def __init__(self, position: tuple):
         super().__init__()
         self.health = 100
@@ -388,6 +367,9 @@ class RandomTerrain:
 
 
 class GameScreen(Screen):
+    """
+    Wrapper for the game widget. It needs to be inside the Screen.
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.game = game

@@ -1,0 +1,12 @@
+# Requirements:
+* python >= 3.5
+* python libraries mentioned in requirements.txt
+
+# How to play the game:
+* run `python main.py`
+* select desired number of players
+
+# Controls:
+* A/D : Tilt the canon
+* W/S : Choose the desired power of the projectile
+* SPACE : Shoot

@@ -3,6 +3,7 @@ from kivy.uix.screenmanager import Screen
 import json
 import os.path
 
+# layouts for the winner input and hall of fame screens
 Builder.load_string("""
 <WinnerInputScreen>:
     FloatLayout:
@@ -81,12 +82,16 @@ class WinnerInputScreen(Screen):
 class HallOfFameScreen(Screen):
     def on_enter(self, *args):
         text = ""
+        # generate the hall of fame list of players
         for i, p in enumerate(ScoreSaver.get_names(), 1):
             text += "{}. {}\n".format(i, p)
         self.ids.winners.text = text
 
 
 class ScoreSaver:
+    """
+    Class for saving and loading the scores.
+    """
     fn = 'assets/scores.json'
 
     @staticmethod

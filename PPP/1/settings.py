@@ -3,6 +3,7 @@ from kivy.uix.screenmanager import Screen
 
 from game import game, kc
 
+# the layout of the first screen for selecting the number of players
 Builder.load_string("""
 <GameSettingsScreen>:
     FloatLayout:
@@ -34,6 +35,8 @@ Builder.load_string("""
 
 
 class GameSettingsScreen(Screen):
+    # this method is called on clicking the 'Start' button
     def start_game(self):
         kc.bind_keyboard()
+        # setup the game for given number of players
         game.game_setup(int(self.ids.spinner.text))
