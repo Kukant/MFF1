@@ -103,7 +103,7 @@ class Missile:
         self.instruction.add(self.body)
         self.active = False
         self.animation = Image(
-            source='assets/explosion.zip',
+            source='assets/explosion.gif',
             anim_delay=-1,
             anim_loop=1,
             allow_stretch=True,
@@ -149,10 +149,10 @@ class Missile:
 
     def detonate(self):
         self.sound.play()
-        self.animation_color.a = 1
-        self.animation._coreimage.anim_reset(True)
-        self.animation.anim_delay = 0.08
-        self.animation_rectangle.pos = tuple(map(lambda x: x - 75, self.body.pos))
+        # self.animation_color.a = 1
+        # self.animation._coreimage.anim_reset(True)
+        # self.animation.anim_delay = 0.08
+        # self.animation_rectangle.pos = tuple(map(lambda x: x - 75, self.body.pos))
 
     @property
     def collides(self) -> bool:
